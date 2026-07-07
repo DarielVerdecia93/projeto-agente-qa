@@ -1,0 +1,16 @@
+#!/bin/sh
+# Hook pre-commit: garante que docs/prompts/ esteja corretamente documentado
+# antes de permitir o commit. Instalação manual: ver docs/prompts/README.md
+# ou o guia de instalação do projeto.
+
+npm run validate:prompts
+RESULT=$?
+
+if [ $RESULT -ne 0 ]; then
+  echo ""
+  echo "Commit bloqueado: a validação de docs/prompts/ falhou (veja mensagens acima)."
+  echo "Corrija a documentação de prompts antes de commitar."
+  exit 1
+fi
+
+exit 0
