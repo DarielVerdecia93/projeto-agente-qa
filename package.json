@@ -5,11 +5,21 @@
   "description": "Agente de IA com LangGraph JS para apoio a QA",
   "type": "module",
   "scripts": {
+    "agent": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts",
     "validate:prompts": "tsx scripts/validate-prompts.ts"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@langchain/core": "^1.2.1",
+    "@langchain/groq": "^1.3.1",
+    "@langchain/langgraph": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "zod": "^4.4.3"
   }
 }
