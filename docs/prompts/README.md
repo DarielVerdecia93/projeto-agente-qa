@@ -6,6 +6,22 @@ para apoiar processos de QA). O objetivo é demonstrar, de forma auditável, que
 processo consciente de **engenharia de prompts** e **engenharia de contexto** — e não apenas
 uso informal e não documentado de ferramentas de IA.
 
+## Duas categorias de prompt registradas aqui
+
+Esta pasta cobre deliberadamente dois tipos de prompt, ambos citados no objetivo do projeto
+("prompts utilizados durante o **desenvolvimento e execução** do agente de IA"):
+
+* **Prompts de engenharia (desenvolvimento)** — os prompts dados à IA que auxiliou a construir
+  o projeto (ex.: [`001`](001-inicializacao-projeto.md)–[`004`](004-visao-geral-agente.md)).
+  Documentam decisões de arquitetura, escopo e design.
+* **Prompts operacionais (execução/runtime)** — os prompts que o próprio agente envia ao LLM
+  em tempo de execução, dentro dos nós do grafo LangGraph JS (ex.:
+  [`005`](005-prompts-operacionais-agente-qa.md)). Documentam o comportamento do agente em
+  produção, não o processo de construção dele.
+
+Ambas as categorias seguem a mesma convenção de nomenclatura, versionamento e seções — a
+distinção é apenas de finalidade, registrada no campo **Contexto de uso** de cada arquivo.
+
 ## Por que os prompts são documentados
 
 * **Rastreabilidade acadêmica**: em um trabalho avaliativo, é preciso comprovar *como* e *por
