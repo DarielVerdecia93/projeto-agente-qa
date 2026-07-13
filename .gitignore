@@ -4,4 +4,3 @@ dist/
 .env
 docs/pdfs/
 docs/outputs/*.md
-!docs/outputs/resultado-exemplo.md

@@ -1,0 +1,12 @@
+Tipo: História de Usuário
+
+Como usuário do sistema,
+quero realizar login usando e-mail e senha,
+para acessar minha área restrita com segurança.
+
+Critérios de aceite:
+- O usuário deve conseguir acessar o sistema com credenciais válidas.
+- O sistema deve exibir mensagem de erro para senha incorreta.
+- Após 5 tentativas inválidas consecutivas, a conta deve ser bloqueada temporariamente por 15 minutos.
+- O sistema deve registrar data, hora e IP das tentativas de login.
+- O usuário deve poder solicitar recuperação de senha.
