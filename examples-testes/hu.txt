@@ -1,0 +1,16 @@
+HU-2314: Compra de puntos en parlays NFL
+
+Como apostador registrado
+Quiero poder comprar puntos (point-buying) en el spread de un partido 
+cuando forma parte de un parlay
+Para poder ajustar la línea a mi favor pagando una cuota reducida
+
+Criterios de aceptación:
+- El sistema debe permitir comprar hasta 3 puntos en el spread principal.
+- El costo por punto comprado debe reflejarse en la reducción de la cuota (odds) del parlay completo.
+- No se debe permitir point-buying en mercados "off-the-board" o suspendidos.
+- El límite de puntos disponibles depende del "key number" del partido (ej: NFL usa 3 y 7 como key numbers, por lo que comprar a través de esos números tiene un costo mayor).
+- El ticket debe reflejar el spread ajustado en TicketWriter antes de confirmar la apuesta.
+- DGS debe registrar el costo total del point-buy en el ticket para la liquidación posterior.
+
+Dependencias: Motor de precios de DGS, validación de mercados activos, TicketWriter UI.

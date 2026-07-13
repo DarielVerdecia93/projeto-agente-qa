@@ -22,10 +22,10 @@ O resultado é exibido no console em Markdown e também salvo automaticamente em
 ## Como gerar um relatório em PDF
 
 O projeto inclui um gerador de relatório PDF profissional a partir de um resultado em Markdown
-já existente (gerado pelo agente ou fornecido manualmente).
+já existente (gerado pelo agente em `docs/outputs/` ou fornecido manualmente).
 
 ```bash
-npm run generate:pdf -- docs/outputs/resultado-exemplo.md
+npm run generate:pdf -- docs/outputs/<nome-do-arquivo-gerado-pelo-agente>.md
 ```
 
 O comando:
@@ -35,13 +35,13 @@ O comando:
    conteúdo formatado e apêndice técnico com metadados de processamento).
 3. Renderiza o HTML em PDF com cabeçalho, rodapé e numeração de páginas.
 4. Salva o PDF em `docs/pdfs/`, com nome padronizado e sem sobrescrever arquivos anteriores
-   (ex.: `relatorio-qa-resultado-exemplo-2026-07-07-1430.pdf`).
+   (ex.: `relatorio-qa-<nome-do-arquivo>-2026-07-07-1430.pdf`).
 5. Exibe no console o caminho final do arquivo gerado.
 
 **Exemplo de saída no console:**
 
 ```text
-PDF gerado com sucesso: G:\...\docs\pdfs\relatorio-qa-resultado-exemplo-2026-07-07-1430.pdf
+PDF gerado com sucesso: G:\...\docs\pdfs\relatorio-qa-demanda-login-2026-07-07-1430.pdf
 ```
 
 **Bibliotecas usadas:** `puppeteer` (renderização do PDF a partir de HTML), `markdown-it`
