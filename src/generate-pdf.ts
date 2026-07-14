@@ -46,7 +46,9 @@ async function main(): Promise<void> {
   try {
     markdown = fs.readFileSync(inputArg, "utf-8");
   } catch (error) {
-    throw new Error(`Erro ao ler o arquivo "${inputArg}": ${(error as Error).message}`);
+    throw new Error(`Erro ao ler o arquivo "${inputArg}": ${(error as Error).message}`, {
+      cause: error,
+    });
   }
 
   const sourceMarkdownPath = path.resolve(inputArg);
@@ -56,14 +58,17 @@ async function main(): Promise<void> {
   try {
     contentHtml = convertMarkdownToHtml(markdown);
   } catch (error) {
-    throw new Error(`Erro ao converter o Markdown para HTML: ${(error as Error).message}`);
+    throw new Error(`Erro ao converter o Markdown para HTML: ${(error as Error).message}`, {
+      cause: error,
+    });
   }
 
   try {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   } catch (error) {
     throw new Error(
-      `Sem permissão para criar/gravar na pasta de destino "${OUTPUT_DIR}": ${(error as Error).message}`
+      `Sem permissão para criar/gravar na pasta de destino "${OUTPUT_DIR}": ${(error as Error).message}`,
+      { cause: error }
     );
   }
 
@@ -90,9 +95,11 @@ async function main(): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (/EACCES|EPERM/i.test(message)) {
-      throw new Error(`Sem permissão para gravar o PDF em "${outputPdfPath}": ${message}`);
+      throw new Error(`Sem permissão para gravar o PDF em "${outputPdfPath}": ${message}`, {
+        cause: error,
+      });
     }
-    throw new Error(`Erro ao gerar o PDF: ${message}`);
+    throw new Error(`Erro ao gerar o PDF: ${message}`, { cause: error });
   }
 
   console.log(`PDF gerado com sucesso: ${outputPdfPath}`);

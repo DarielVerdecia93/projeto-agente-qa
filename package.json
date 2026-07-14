@@ -8,14 +8,19 @@
     "agent": "tsx src/index.ts",
     "generate:pdf": "tsx src/generate-pdf.ts",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "tsx --test src/**/*.test.ts",
     "validate:prompts": "tsx scripts/validate-prompts.ts"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^20.14.0",
+    "eslint": "^10.7.0",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.64.0"
   },
   "dependencies": {
     "@langchain/core": "^1.2.1",
