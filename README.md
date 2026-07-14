@@ -123,6 +123,7 @@ pronto para anexar em um card, e-mail ou documentação de teste.
 | Executar o agente | `npm run agent -- <texto ou caminho>` | Roda o agente sobre uma demanda e salva o resultado em `docs/outputs/`. |
 | Gerar PDF | `npm run generate:pdf -- <caminho.md>` | Converte um relatório Markdown em PDF em `docs/pdfs/`. |
 | Checar tipos | `npm run typecheck` | Roda `tsc --noEmit` sobre `src/` e `scripts/`. |
+| Lint | `npm run lint` (ou `npm run lint:fix`) | Roda o ESLint sobre o projeto (ver [`eslint.config.js`](eslint.config.js)). |
 | Rodar testes | `npm test` | Roda os testes unitários (`node:test` via `tsx`). |
 | Validar prompts | `npm run validate:prompts` | Garante que `docs/prompts/` está estruturalmente correto (ver [`CONTRIBUTING.md`](CONTRIBUTING.md)). |
 
@@ -159,3 +160,5 @@ scripts/         scripts de suporte (validação de prompts, git hooks)
   e estrutura dos registros de prompt.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — fluxo de branches, convenção de commits e checklist
   antes de abrir um PR.
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — pipeline de CI (typecheck, lint,
+  testes e validação de prompts) executado a cada push/PR para `main` e `develop`.

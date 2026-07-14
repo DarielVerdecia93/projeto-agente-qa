@@ -64,15 +64,35 @@ feat: adiciona geracao de relatorio PDF a partir do Markdown
 feat: torna os prompts do agente de QA mais verbosos e tecnicos
 ```
 
+## Convenções de código
+
+O projeto usa TypeScript em modo `strict` (ver [`tsconfig.json`](tsconfig.json)) e ESLint
+([`eslint.config.js`](eslint.config.js), com `typescript-eslint` recomendado) como fonte única
+de verdade sobre as regras de estilo/qualidade aplicadas — evite duplicar essa lista aqui; rode
+`npm run lint` para ver o que está sendo verificado. Diretrizes gerais que não são cobertas por
+uma regra de lint automática:
+
+- Evite comentários que só repetem o que o código já diz; comente apenas quando o *porquê* não
+  for óbvio (uma decisão não trivial, uma limitação conhecida).
+- Prefira nomes descritivos de função/variável a abreviações.
+- Erros relançados em blocos `catch` devem preservar o erro original via `{ cause: error }`,
+  para não perder o stack trace (fiscalizado pela regra `preserve-caught-error` do ESLint).
+
 ## Antes de abrir um pull request
 
 Rode localmente e confirme que tudo passa:
 
 ```bash
 npm run typecheck
+npm run lint
 npm test
 npm run validate:prompts
 ```
+
+Esses mesmos quatro passos rodam automaticamente no CI
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) a cada push ou pull request para
+`main`/`develop` — um PR com qualquer um deles falhando não deve ser mergeado. Se o lint apontar
+problemas simples de estilo, `npm run lint:fix` corrige a maioria automaticamente.
 
 Se a mudança alterou qualquer prompt em [`src/prompts.ts`](src/prompts.ts), atualize o registro
 correspondente em [`docs/prompts/005-prompts-operacionais-agente-qa.md`](docs/prompts/005-prompts-operacionais-agente-qa.md)
