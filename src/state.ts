@@ -29,6 +29,11 @@ export const AgentStateAnnotation = Annotation.Root({
     reducer: (_, next) => next,
     default: () => undefined,
   }),
+  /** Nome da tool de análise escolhida pelo LLM (ou o fallback determinístico). */
+  analysisToolUsed: Annotation<string | undefined>({
+    reducer: (_, next) => next,
+    default: () => undefined,
+  }),
   missingInfo: Annotation<string[]>({
     reducer: (_, next) => next,
     default: () => [],
@@ -66,6 +71,15 @@ export const AgentStateAnnotation = Annotation.Root({
     default: () => 0,
   }),
   finalOutput: Annotation<string | undefined>({
+    reducer: (_, next) => next,
+    default: () => undefined,
+  }),
+  /** Quando true, o nó de saída também gera o relatório em PDF via tool. */
+  generatePdf: Annotation<boolean>({
+    reducer: (_, next) => next,
+    default: () => false,
+  }),
+  pdfPath: Annotation<string | undefined>({
     reducer: (_, next) => next,
     default: () => undefined,
   }),

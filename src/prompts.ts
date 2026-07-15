@@ -31,6 +31,43 @@ componentes, entidades ou comportamentos que não tenham qualquer indício na de
 verbosidade é bem-vinda apenas para detalhar o que já está no texto, não para adicionar
 informação nova.`;
 
+export const SELECT_ANALYSIS_TOOL_PROMPT = `Você é um roteador de análise de QA. Você recebe uma demanda técnica e a classificação já
+feita. Sua única tarefa é escolher e chamar exatamente UMA das ferramentas (tools) de análise
+disponíveis, a que for mais adequada ao formato e ao conteúdo da demanda:
+
+- "analisar_alteracao_api": quando a demanda descreve criação/alteração de endpoints, contratos,
+  payloads, integrações ou versionamento de API;
+- "analisar_documento_markdown": quando a demanda é um documento estruturado em Markdown
+  (títulos "#", listas, tabelas, seções de critérios de aceite);
+- "analisar_texto_livre": para os demais casos — texto corrido, histórias de usuário, bugs,
+  tarefas técnicas sem estrutura de documento.
+
+Sempre chame uma ferramenta; nunca responda com texto. Preencha "motivoEscolha" com uma frase
+objetiva explicando a escolha.`;
+
+export const ANALYZE_FREE_TEXT_PROMPT = `${EXTRACT_INFORMATION_PROMPT}
+
+Foco específico desta análise (texto livre): a demanda vem em texto corrido, sem estrutura
+formal. Dê atenção a requisitos implícitos no meio da narrativa, fluxos de usuário descritos em
+sequência e critérios de aceite mencionados de forma indireta (ex.: "deve", "não pode",
+"apenas quando").`;
+
+export const ANALYZE_API_CHANGE_PROMPT = `${EXTRACT_INFORMATION_PROMPT}
+
+Foco específico desta análise (alteração de API): identifique endpoints e verbos HTTP afetados,
+mudanças de contrato (campos novos/removidos/renomeados, tipos, obrigatoriedade), códigos de
+resposta e erros esperados, consumidores impactados e necessidade de compatibilidade retroativa
+ou versionamento. Liste esses elementos em "componentesAfetados" e "criteriosMencionados"
+quando presentes no texto.`;
+
+export const ANALYZE_MARKDOWN_DOC_PROMPT = `${EXTRACT_INFORMATION_PROMPT}
+
+Foco específico desta análise (documento Markdown): a demanda é um documento estruturado.
+Respeite a estrutura de seções (títulos, listas, tabelas): critérios de aceite listados devem
+ser transcritos em "criteriosMencionados" preservando o sentido de cada item, e seções que
+nomeiam módulos/serviços devem alimentar "componentesAfetados". Não perca informação que esteja
+em tabelas ou listas aninhadas.`;
+
 export const IDENTIFY_AMBIGUITIES_PROMPT = `Você é um revisor crítico de QA. A partir da demanda, da classificação e das informações já
 extraídas, identifique separadamente:
 - "assumptions": premissas que você precisou assumir para interpretar a demanda, por não

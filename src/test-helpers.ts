@@ -6,6 +6,7 @@ export function createTestState(overrides: Partial<AgentState> = {}): AgentState
     insufficientReason: undefined,
     classification: undefined,
     extractedInfo: undefined,
+    analysisToolUsed: undefined,
     missingInfo: [],
     assumptions: [],
     risks: [],
@@ -16,6 +17,8 @@ export function createTestState(overrides: Partial<AgentState> = {}): AgentState
     consistencyReview: undefined,
     consistencyRetries: 0,
     finalOutput: undefined,
+    generatePdf: false,
+    pdfPath: undefined,
     ...overrides,
   };
 }

@@ -58,6 +58,9 @@ npm run agent -- "Como usuário quero recuperar minha senha por e-mail"
 
 # Opção B: a partir de um arquivo
 npm run agent -- examples-testes/demanda-login.txt
+
+# Opção C: qualquer uma das anteriores + geração do PDF ao final
+npm run agent -- examples-testes/demanda-login.txt --pdf
 ```
 
 Internamente (`src/index.ts`), o agente verifica se o argumento é um caminho de arquivo
@@ -69,6 +72,16 @@ de ambiguidades, avaliação de riscos, definição de estratégia de testes, ge
 revisão de consistência — ver [`docs/arquitetura/visao-geral-agente.md`](docs/arquitetura/visao-geral-agente.md)),
 com várias chamadas sequenciais ao LLM. Uma execução completa normalmente leva alguns segundos a
 pouco mais de um minuto, dependendo da complexidade da demanda e da velocidade do modelo.
+
+A arquitetura é **híbrida: nós + tools**. O fluxo entre as etapas é determinístico (garantido
+pelo grafo), mas na etapa de extração de informações o LLM escolhe, via *tool calling*, qual
+tool de análise especializada aplicar — `analisar_texto_livre`, `analisar_alteracao_api` ou
+`analisar_documento_markdown` (ver [`src/tools/analysis-tools.ts`](src/tools/analysis-tools.ts)).
+Se o modelo não chamar nenhuma tool válida, o agente usa um fallback determinístico com o prompt
+genérico de extração. A saída também é encapsulada em tools (`gerar_relatorio_markdown` e
+`gerar_relatorio_pdf`, em [`src/tools/output-tools.ts`](src/tools/output-tools.ts)), invocadas
+pelo nó final — o PDF só é gerado quando a flag `--pdf` é passada. O console informa qual tool
+de análise foi utilizada em cada execução.
 
 ### 3. Entender a saída
 
@@ -85,8 +98,10 @@ a demanda seja detalhada e reenviada.
 
 ### 4. Gerar o relatório em PDF
 
-Com um arquivo Markdown em mãos (gerado pelo agente em `docs/outputs/` ou escrito manualmente
-no mesmo formato), gere um PDF técnico pronto para compartilhar:
+Há duas formas de obter o PDF. A mais direta é rodar o agente com a flag `--pdf` (passo 2), que
+gera o relatório Markdown e o PDF na mesma execução. Alternativamente, com um arquivo Markdown
+em mãos (gerado pelo agente em `docs/outputs/` ou escrito manualmente no mesmo formato), gere um
+PDF técnico pronto para compartilhar:
 
 ```bash
 npm run generate:pdf -- docs/outputs/<nome-do-arquivo-gerado-pelo-agente>.md
@@ -120,7 +135,7 @@ pronto para anexar em um card, e-mail ou documentação de teste.
 
 | Script | Comando | Descrição |
 |---|---|---|
-| Executar o agente | `npm run agent -- <texto ou caminho>` | Roda o agente sobre uma demanda e salva o resultado em `docs/outputs/`. |
+| Executar o agente | `npm run agent -- <texto ou caminho> [--pdf]` | Roda o agente sobre uma demanda e salva o resultado em `docs/outputs/`; com `--pdf`, também gera o PDF em `docs/pdfs/`. |
 | Gerar PDF | `npm run generate:pdf -- <caminho.md>` | Converte um relatório Markdown em PDF em `docs/pdfs/`. |
 | Checar tipos | `npm run typecheck` | Roda `tsc --noEmit` sobre `src/` e `scripts/`. |
 | Lint | `npm run lint` (ou `npm run lint:fix`) | Roda o ESLint sobre o projeto (ver [`eslint.config.js`](eslint.config.js)). |
@@ -132,6 +147,7 @@ pronto para anexar em um card, e-mail ou documentação de teste.
 ```
 src/
   nodes/        nós do grafo LangGraph (um por etapa do fluxo do agente)
+  tools/        tools LangChain: análises especializadas (tool calling) e geração de relatórios
   format/       serialização do estado final em Markdown
   services/     conversão Markdown → HTML e geração do PDF
   templates/     template HTML do relatório em PDF

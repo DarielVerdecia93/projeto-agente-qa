@@ -19,33 +19,49 @@ function saveOutputMarkdown(rawInput: string, markdown: string): string {
   return outputPath;
 }
 
-async function readInput(argv: string[]): Promise<string> {
-  const arg = argv[2];
+interface CliOptions {
+  rawInput: string;
+  generatePdf: boolean;
+}
+
+async function readCliOptions(argv: string[]): Promise<CliOptions> {
+  const args = argv.slice(2);
+  const generatePdf = args.includes("--pdf");
+  const arg = args.find((item) => item !== "--pdf");
+
   if (!arg) {
     throw new Error(
-      "Uso: npm run agent -- \"texto da demanda\"  (ou) npm run agent -- caminho/arquivo.txt"
+      "Uso: npm run agent -- \"texto da demanda\" [--pdf]  (ou) npm run agent -- caminho/arquivo.txt [--pdf]"
     );
   }
 
   if (fs.existsSync(arg) && fs.statSync(arg).isFile()) {
-    return fs.readFileSync(arg, "utf-8");
+    return { rawInput: fs.readFileSync(arg, "utf-8"), generatePdf };
   }
 
-  return arg;
+  return { rawInput: arg, generatePdf };
 }
 
 async function main(): Promise<void> {
-  const rawInput = await readInput(process.argv);
+  const { rawInput, generatePdf } = await readCliOptions(process.argv);
   const agent = buildQaAgentGraph();
 
-  const result = await agent.invoke({ rawInput });
+  const result = await agent.invoke({ rawInput, generatePdf });
   const markdown = result.finalOutput ?? "Nenhuma saída gerada.";
 
   console.log(markdown);
 
+  if (result.analysisToolUsed) {
+    console.log(`\nTool de análise utilizada: ${result.analysisToolUsed}`);
+  }
+
   if (result.finalOutput) {
     const savedPath = saveOutputMarkdown(rawInput, markdown);
-    console.log(`\nResultado salvo em: ${savedPath}`);
+    console.log(`Resultado salvo em: ${savedPath}`);
+  }
+
+  if (result.pdfPath) {
+    console.log(`PDF gerado em: ${result.pdfPath}`);
   }
 }
 

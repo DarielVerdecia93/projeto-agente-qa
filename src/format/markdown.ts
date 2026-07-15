@@ -1,4 +1,4 @@
-import type { AgentState } from "../state.js";
+import type { ReportData } from "../schemas.js";
 
 function section(title: string, body: string): string {
   return `## ${title}\n\n${body}\n`;
@@ -25,7 +25,7 @@ export function renderInsufficientInputMarkdown(reason: string): string {
   ].join("\n");
 }
 
-export function renderFinalOutputMarkdown(state: AgentState): string {
+export function renderFinalOutputMarkdown(state: ReportData): string {
   const { classification, extractedInfo, testStrategy } = state;
 
   const scenariosByType = state.generatedScenarios.reduce<Record<string, string[]>>(
