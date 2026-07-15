@@ -3,8 +3,8 @@
 ## Identificação
 
 - Código: 005
-- Versão: 1.3
-- Data: 2026-07-13
+- Versão: 1.4
+- Data: 2026-07-14
 - Autor: dverdecia
 - Status: Ativo
 
@@ -27,7 +27,11 @@ nó do `StateGraph` construído em [`src/graph.ts`](../../src/graph.ts):
 | Prompt (constante em `src/prompts.ts`) | Nó (`src/nodes/`) | Schema de saída (`src/schemas.ts`) |
 |---|---|---|
 | `CLASSIFY_DEMAND_PROMPT` | `classify-demand.ts` | `classificationSchema` |
-| `EXTRACT_INFORMATION_PROMPT` | `extract-information.ts` | `extractedInfoSchema` |
+| `SELECT_ANALYSIS_TOOL_PROMPT` | `extract-information.ts` (seleção de tool via tool calling) | tool call (uma das tools de `src/tools/analysis-tools.ts`) |
+| `ANALYZE_FREE_TEXT_PROMPT` | tool `analisar_texto_livre` (`src/tools/analysis-tools.ts`) | `extractedInfoSchema` |
+| `ANALYZE_API_CHANGE_PROMPT` | tool `analisar_alteracao_api` (`src/tools/analysis-tools.ts`) | `extractedInfoSchema` |
+| `ANALYZE_MARKDOWN_DOC_PROMPT` | tool `analisar_documento_markdown` (`src/tools/analysis-tools.ts`) | `extractedInfoSchema` |
+| `EXTRACT_INFORMATION_PROMPT` | `extract-information.ts` (fallback determinístico) | `extractedInfoSchema` |
 | `IDENTIFY_AMBIGUITIES_PROMPT` | `identify-ambiguities.ts` | `ambiguitiesSchema` |
 | `ASSESS_RISKS_PROMPT` | `assess-risks.ts` | `risksSchema` |
 | `DEFINE_TEST_STRATEGY_PROMPT` | `define-test-strategy.ts` | `testStrategySchema` |
@@ -80,6 +84,52 @@ Extraia apenas o que está explícito ou razoavelmente implícito no texto. Não
 componentes, entidades ou comportamentos que não tenham qualquer indício na demanda —
 verbosidade é bem-vinda apenas para detalhar o que já está no texto, não para adicionar
 informação nova.
+```
+
+### Selecionar tool de análise (`SELECT_ANALYSIS_TOOL_PROMPT`)
+
+```text
+Você é um roteador de análise de QA. Você recebe uma demanda técnica e a classificação já
+feita. Sua única tarefa é escolher e chamar exatamente UMA das ferramentas (tools) de análise
+disponíveis, a que for mais adequada ao formato e ao conteúdo da demanda:
+
+- "analisar_alteracao_api": quando a demanda descreve criação/alteração de endpoints, contratos,
+  payloads, integrações ou versionamento de API;
+- "analisar_documento_markdown": quando a demanda é um documento estruturado em Markdown
+  (títulos "#", listas, tabelas, seções de critérios de aceite);
+- "analisar_texto_livre": para os demais casos — texto corrido, histórias de usuário, bugs,
+  tarefas técnicas sem estrutura de documento.
+
+Sempre chame uma ferramenta; nunca responda com texto. Preencha "motivoEscolha" com uma frase
+objetiva explicando a escolha.
+```
+
+### Tools de análise especializadas (`ANALYZE_FREE_TEXT_PROMPT`, `ANALYZE_API_CHANGE_PROMPT`, `ANALYZE_MARKDOWN_DOC_PROMPT`)
+
+Cada uma reutiliza integralmente o texto de `EXTRACT_INFORMATION_PROMPT` (acima) e acrescenta
+um parágrafo de foco específico:
+
+```text
+Foco específico desta análise (texto livre): a demanda vem em texto corrido, sem estrutura
+formal. Dê atenção a requisitos implícitos no meio da narrativa, fluxos de usuário descritos em
+sequência e critérios de aceite mencionados de forma indireta (ex.: "deve", "não pode",
+"apenas quando").
+```
+
+```text
+Foco específico desta análise (alteração de API): identifique endpoints e verbos HTTP afetados,
+mudanças de contrato (campos novos/removidos/renomeados, tipos, obrigatoriedade), códigos de
+resposta e erros esperados, consumidores impactados e necessidade de compatibilidade retroativa
+ou versionamento. Liste esses elementos em "componentesAfetados" e "criteriosMencionados"
+quando presentes no texto.
+```
+
+```text
+Foco específico desta análise (documento Markdown): a demanda é um documento estruturado.
+Respeite a estrutura de seções (títulos, listas, tabelas): critérios de aceite listados devem
+ser transcritos em "criteriosMencionados" preservando o sentido de cada item, e seções que
+nomeiam módulos/serviços devem alimentar "componentesAfetados". Não perca informação que esteja
+em tabelas ou listas aninhadas.
 ```
 
 ### Identificar ambiguidades (`IDENTIFY_AMBIGUITIES_PROMPT`)
@@ -237,6 +287,16 @@ agente — falhas de formatação do LLM não corrompem o estado.
   usar IA apenas onde há de fato julgamento a ser feito (ver seção 8,
   "Por que é um agente e não um script", em
   [`visao-geral-agente.md`](../arquitetura/visao-geral-agente.md)).
+- **Arquitetura híbrida: fluxo determinístico de nós + tools onde há decisão real** (v1.4): o
+  grafo continua garantindo por código que toda análise passa por todas as etapas, mas dois
+  pontos passaram a usar tools (`src/tools/`): a extração de informações, em que o LLM escolhe
+  via tool calling a análise especializada mais adequada ao formato da demanda (texto livre,
+  alteração de API ou documento Markdown), com fallback determinístico para
+  `EXTRACT_INFORMATION_PROMPT` se nenhuma tool válida for chamada; e a saída final, em que a
+  geração do relatório Markdown e do PDF são tools reutilizáveis invocadas pelo nó
+  (`buildFinalOutput`) de forma determinística — a escolha do formato de saída vem da flag
+  `--pdf` do CLI, não do LLM, porque não há sinal na demanda que justifique delegar essa
+  decisão ao modelo.
 - **Contexto enviado como JSON estruturado (`HumanMessage` com `JSON.stringify` do recorte do
   estado), não como prosa**: reduz ambiguidade de interpretação pelo LLM sobre qual informação é
   "a demanda original" versus "informação já derivada por um nó anterior" — importante porque
@@ -258,3 +318,4 @@ commit.
 | 1.1 | 2026-07-13 | Relatório final considerado pouco detalhado (resumo técnico curto, riscos como rótulo, cenários limitados ao caminho feliz). Ajuste de redação (sem mudança de objetivo ou de schema) em `EXTRACT_INFORMATION_PROMPT`, `ASSESS_RISKS_PROMPT` e `GENERATE_SCENARIOS_PROMPT` para pedir explicitamente resumo técnico em parágrafo(s), descrição de risco justificada e cobertura de casos de borda/negativos além do caminho feliz | |
 | 1.2 | 2026-07-13 | Cenários gerados liam como descrição de funcionalidade para cliente/negócio, não como caso de teste técnico para QA. Ajuste de redação em `GENERATE_SCENARIOS_PROMPT` para exigir dados de teste concretos nos passos, verificação técnica do resultado (código de resposta, log, estado persistido) e evidência técnica preferencial sobre print de tela | |
 | 1.3 | 2026-07-13 | Após teste real, o LLM ainda escrevia passos com "credenciais válidas/inválidas" sem valor literal e títulos genéricos repetindo a funcionalidade de negócio. Reforço de redação em `GENERATE_SCENARIOS_PROMPT`: exigência explícita de valor literal entre aspas no passo de pré-condição/ação, e título nomeado pela condição técnica isolada, não pela funcionalidade | |
+| 1.4 | 2026-07-14 | Introdução de tools (arquitetura híbrida): novos prompts `SELECT_ANALYSIS_TOOL_PROMPT` (seleção de tool de análise via tool calling) e `ANALYZE_FREE_TEXT_PROMPT`/`ANALYZE_API_CHANGE_PROMPT`/`ANALYZE_MARKDOWN_DOC_PROMPT` (especializações de `EXTRACT_INFORMATION_PROMPT`); `EXTRACT_INFORMATION_PROMPT` passa a ser o fallback determinístico. Saída (Markdown/PDF) encapsulada nas tools `gerar_relatorio_markdown` e `gerar_relatorio_pdf` | |

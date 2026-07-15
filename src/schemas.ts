@@ -52,3 +52,21 @@ export const consistencyReviewSchema = z.object({
   consistente: z.boolean(),
   problemas: z.array(z.string()),
 });
+
+/**
+ * Payload aceito pela tool de geração do relatório Markdown — o subconjunto do
+ * estado do agente que o relatório final consome.
+ */
+export const reportDataSchema = z.object({
+  classification: classificationSchema.optional(),
+  extractedInfo: extractedInfoSchema.optional(),
+  assumptions: z.array(z.string()),
+  missingInfo: z.array(z.string()),
+  risks: risksSchema.shape.risks,
+  testStrategy: testStrategySchema.optional(),
+  generatedScenarios: scenariosSchema.shape.scenarios,
+  validationChecklist: z.array(z.string()),
+  recommendations: z.array(z.string()),
+});
+
+export type ReportData = z.infer<typeof reportDataSchema>;
