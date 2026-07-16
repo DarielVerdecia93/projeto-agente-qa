@@ -26,10 +26,11 @@ checklist de validação, riscos e recomendações.
 - **Node.js 18 ou superior** e **npm** (o projeto usa ESM nativo e sintaxe ES2022 — ver
   [`tsconfig.json`](tsconfig.json)).
 - Uma **chave de API da [Groq](https://console.groq.com/keys)** (usada para as chamadas ao LLM
-  em `src/llm.ts`). A conta gratuita da Groq é suficiente para rodar o agente, mas tem um limite
-  de tokens por minuto (TPM) que varia por modelo — se você receber erro `429` ao executar,
-  espere alguns segundos e tente novamente, ou troque `GROQ_MODEL` no `.env` por um modelo com
-  mais cota disponível na sua conta.
+  em `src/llm.ts`). A conta gratuita da Groq tem um limite de tokens por minuto (TPM) que varia
+  por modelo — o agente já lida com isso automaticamente: se o modelo principal (`GROQ_MODEL`)
+  responder `429`, a chamada é repetida na hora com o modelo de fallback (`GROQ_FALLBACK_MODEL`,
+  que tem uma cota de TPM maior). Se ambos estiverem no limite, ajuste um deles no `.env` para um
+  modelo com mais cota disponível na sua conta.
 
 ## Fluxo completo (ponta a ponta)
 

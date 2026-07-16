@@ -4,3 +4,4 @@ dist/
 .env
 docs/pdfs/
 docs/outputs/*.md
+examples-testes/only-wager.txt
