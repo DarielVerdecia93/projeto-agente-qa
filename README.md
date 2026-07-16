@@ -26,11 +26,18 @@ checklist de validação, riscos e recomendações.
 - **Node.js 18 ou superior** e **npm** (o projeto usa ESM nativo e sintaxe ES2022 — ver
   [`tsconfig.json`](tsconfig.json)).
 - Uma **chave de API da [Groq](https://console.groq.com/keys)** (usada para as chamadas ao LLM
-  em `src/llm.ts`). A conta gratuita da Groq tem um limite de tokens por minuto (TPM) que varia
-  por modelo — o agente já lida com isso automaticamente: se o modelo principal (`GROQ_MODEL`)
-  responder `429`, a chamada é repetida na hora com o modelo de fallback (`GROQ_FALLBACK_MODEL`,
-  que tem uma cota de TPM maior). Se ambos estiverem no limite, ajuste um deles no `.env` para um
-  modelo com mais cota disponível na sua conta.
+  em `src/llm.ts`). A conta possui limites por minuto e por dia, aplicados por modelo e no nível
+  da organização. Se o modelo principal (`GROQ_MODEL`) falhar, o agente tenta imediatamente os
+  modelos listados em `GROQ_FALLBACK_MODELS`. Se todos falharem, a mensagem final identifica o erro de cada um e o
+  tempo de espera informado pela Groq. Esperas curtas (até 60 segundos por padrão), típicas de
+  limite por minuto, são respeitadas automaticamente e podem exigir mais de uma tentativa;
+  limites diários não bloqueiam a execução durante horas. Os padrões atuais são
+  `openai/gpt-oss-120b`, com `llama-3.1-8b-instant` e `qwen/qwen3.6-27b` como fallbacks
+  complementares. O primeiro fallback foi mantido temporariamente por apresentar boa
+  compatibilidade com este agente, mas tem desligamento anunciado para 16/08/2026 e deve ser
+  reavaliado antes dessa data. Consulte os
+  [limites da conta](https://console.groq.com/settings/limits) e a
+  [política de descontinuação de modelos](https://console.groq.com/docs/deprecations).
 
 ## Fluxo completo (ponta a ponta)
 
@@ -43,10 +50,12 @@ npm install
 cp .env.example .env
 ```
 
-Abra o `.env` e preencha `GROQ_API_KEY` com sua chave da Groq. O campo `GROQ_MODEL` já vem
-preenchido com um modelo padrão (`llama-3.3-70b-versatile`); só altere se souber o que está
-fazendo — modelos diferentes têm limites de tokens/minuto e comportamentos de saída estruturada
-distintos.
+Abra o `.env` e preencha `GROQ_API_KEY` com sua chave da Groq. `GROQ_MODEL` define o principal e
+`GROQ_FALLBACK_MODELS` aceita uma lista de alternativas separadas por vírgula. Os padrões foram
+testados nas chamadas estruturadas e de tools do agente; ainda assim, modelos diferentes podem
+apresentar comportamentos distintos em tarefas específicas. `GROQ_MAX_RATE_LIMIT_WAIT_SECONDS` controla por quanto
+tempo o agente pode aguardar e repetir uma chamada limitada por minuto; valores maiores não são
+recomendados para limites diários.
 
 ### 2. Executar o agente
 
@@ -70,8 +79,13 @@ texto da demanda. A pasta [`examples-testes/`](examples-testes/) tem exemplos pr
 
 O processamento passa por um grafo de nós (classificação, extração de informação, identificação
 de ambiguidades, avaliação de riscos, definição de estratégia de testes, geração de cenários e
-revisão de consistência — ver [`docs/arquitetura/visao-geral-agente.md`](docs/arquitetura/visao-geral-agente.md)),
-com várias chamadas sequenciais ao LLM. Uma execução completa normalmente leva alguns segundos a
+revisão de consistência — ver [`docs/arquitetura/visao-geral-agente.md`](docs/arquitetura/visao-geral-agente.md)).
+A revisão aplica primeiro regras determinísticas de cobertura (ao menos um cenário para cada
+categoria escolhida na estratégia e três passos por cenário) e só então usa o LLM para avaliar a
+coerência semântica. Uma falha objetiva orienta uma nova geração; se as tentativas se esgotarem,
+o relatório explicita a pendência para revisão manual em vez de marcar a categoria como não
+aplicável.
+O fluxo realiza várias chamadas sequenciais ao LLM. Uma execução completa normalmente leva alguns segundos a
 pouco mais de um minuto, dependendo da complexidade da demanda e da velocidade do modelo.
 
 A arquitetura é **híbrida: nós + tools**. O fluxo entre as etapas é determinístico (garantido

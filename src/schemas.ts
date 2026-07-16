@@ -67,6 +67,7 @@ export const reportDataSchema = z.object({
   generatedScenarios: scenariosSchema.shape.scenarios,
   validationChecklist: z.array(z.string()),
   recommendations: z.array(z.string()),
+  consistencyReview: consistencyReviewSchema.optional(),
 });
 
 export type ReportData = z.infer<typeof reportDataSchema>;

@@ -43,3 +43,23 @@ test("renderFinalOutputMarkdown agrupa cenários por tipo e riscos por categoria
   assert.match(markdown, /\[ALTA\] Impede acesso de usuários/);
   assert.match(markdown, /Não aplicável a esta demanda\./);
 });
+
+test("renderFinalOutputMarkdown sinaliza categoria aplicável ausente", () => {
+  const state = createTestState({
+    testStrategy: {
+      categoriasAplicaveis: ["funcional", "integracao"],
+      justificativa: "Fluxo integrado.",
+    },
+    consistencyReview: {
+      consistente: false,
+      problemas: ['A categoria aplicável "integracao" não possui cenários.'],
+    },
+  });
+
+  const markdown = renderFinalOutputMarkdown(state);
+
+  assert.match(markdown, /Cenários de integração/);
+  assert.match(markdown, /Categoria aplicável sem cenários válidos/);
+  assert.match(markdown, /Pendências de consistência/);
+  assert.match(markdown, /categoria aplicável "integracao" não possui cenários/);
+});
