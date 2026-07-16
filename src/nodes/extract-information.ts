@@ -1,5 +1,5 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import { createChatModel } from "../llm.js";
+import { withGroqFallback } from "../llm.js";
 import { EXTRACT_INFORMATION_PROMPT, SELECT_ANALYSIS_TOOL_PROMPT } from "../prompts.js";
 import { extractedInfoSchema } from "../schemas.js";
 import type { AgentState, AgentStateUpdate } from "../state.js";
@@ -33,7 +33,7 @@ export async function extractInformation(state: AgentState): Promise<AgentStateU
   });
 
   try {
-    const model = createChatModel().bindTools(tools);
+    const model = withGroqFallback((chat) => chat.bindTools(tools));
     const response = await model.invoke([
       new SystemMessage(SELECT_ANALYSIS_TOOL_PROMPT),
       new HumanMessage(
