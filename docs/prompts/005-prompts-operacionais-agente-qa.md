@@ -3,8 +3,8 @@
 ## Identificação
 
 - Código: 005
-- Versão: 1.4
-- Data: 2026-07-14
+- Versão: 1.5
+- Data: 2026-07-16
 - Autor: dverdecia
 - Status: Ativo
 
@@ -36,9 +36,15 @@ nó do `StateGraph` construído em [`src/graph.ts`](../../src/graph.ts):
 | `ASSESS_RISKS_PROMPT` | `assess-risks.ts` | `risksSchema` |
 | `DEFINE_TEST_STRATEGY_PROMPT` | `define-test-strategy.ts` | `testStrategySchema` |
 | `GENERATE_SCENARIOS_PROMPT` | `generate-scenarios.ts` | `scenariosSchema` |
-| `REVIEW_CONSISTENCY_PROMPT` | `review-consistency.ts` | `consistencyReviewSchema` |
+| `REVIEW_CONSISTENCY_PROMPT` | `review-consistency.ts`, após validação determinística | `consistencyReviewSchema` |
 
-Os nós `receiveInput`, `validateInput` e `buildFinalOutput`/`requestMoreInfo` são
+Antes de `REVIEW_CONSISTENCY_PROMPT`, o próprio código valida invariantes objetivas em
+`src/validation/scenario-consistency.ts`: cada categoria escolhida na estratégia deve possuir
+ao menos um cenário e cada cenário deve ter ao menos três passos. A quantidade de quatro
+cenários por categoria continua sendo um objetivo de qualidade instruído ao gerador, mas não
+invalida uma saída que já possua cobertura útil e estruturada. Se alguma regra objetiva falhar,
+o LLM não é chamado nessa revisão; os problemas determinísticos são enviados ao nó de geração
+na tentativa seguinte. Os nós `receiveInput`, `validateInput` e `buildFinalOutput`/`requestMoreInfo` são
 deterministas (sem chamada ao LLM) e por isso não têm prompt associado — ver justificativa na
 seção "Decisões de engenharia de prompt".
 
@@ -280,6 +286,11 @@ agente — falhas de formatação do LLM não corrompem o estado.
   por preferências estilísticas"): sem essa calibração, um revisor de LLM tende a encontrar
   sempre algum problema, disparando o loop de nova geração de cenários indefinidamente (mitigado
   também estruturalmente por `MAX_CONSISTENCY_RETRIES = 1` em `src/state.ts`).
+- **Validação determinística antes da revisão semântica** (v1.5): cobertura das categorias
+  aplicáveis e quantidade mínima de passos são invariantes verificáveis por código, portanto não
+  dependem da interpretação do LLM. O prompt de revisão fica responsável apenas por contradições
+  e lacunas semânticas. Se o limite de tentativas for atingido, o relatório mostra as pendências
+  objetivas em vez de rotular uma categoria aplicável como "não aplicável".
 - **Ausência deliberada de prompt para `receiveInput`, `validateInput` e
   `buildFinalOutput`/`requestMoreInfo`**: normalização de texto, checagem de tamanho mínimo e
   serialização em Markdown são operações determinísticas — usar um LLM para elas adicionaria
@@ -319,3 +330,4 @@ commit.
 | 1.2 | 2026-07-13 | Cenários gerados liam como descrição de funcionalidade para cliente/negócio, não como caso de teste técnico para QA. Ajuste de redação em `GENERATE_SCENARIOS_PROMPT` para exigir dados de teste concretos nos passos, verificação técnica do resultado (código de resposta, log, estado persistido) e evidência técnica preferencial sobre print de tela | |
 | 1.3 | 2026-07-13 | Após teste real, o LLM ainda escrevia passos com "credenciais válidas/inválidas" sem valor literal e títulos genéricos repetindo a funcionalidade de negócio. Reforço de redação em `GENERATE_SCENARIOS_PROMPT`: exigência explícita de valor literal entre aspas no passo de pré-condição/ação, e título nomeado pela condição técnica isolada, não pela funcionalidade | |
 | 1.4 | 2026-07-14 | Introdução de tools (arquitetura híbrida): novos prompts `SELECT_ANALYSIS_TOOL_PROMPT` (seleção de tool de análise via tool calling) e `ANALYZE_FREE_TEXT_PROMPT`/`ANALYZE_API_CHANGE_PROMPT`/`ANALYZE_MARKDOWN_DOC_PROMPT` (especializações de `EXTRACT_INFORMATION_PROMPT`); `EXTRACT_INFORMATION_PROMPT` passa a ser o fallback determinístico. Saída (Markdown/PDF) encapsulada nas tools `gerar_relatorio_markdown` e `gerar_relatorio_pdf` | |
+| 1.5 | 2026-07-16 | A revisão de consistência passou a aplicar antes do LLM uma validação determinística de cobertura por categoria e quantidade mínima de passos. As falhas orientam a regeneração e permanecem explícitas no relatório caso o limite de tentativas seja atingido | |

@@ -28,6 +28,13 @@ export function renderInsufficientInputMarkdown(reason: string): string {
 export function renderFinalOutputMarkdown(state: ReportData): string {
   const { classification, extractedInfo, testStrategy } = state;
 
+  const emptyScenarioLabel = (type: string, defaultLabel: string): string =>
+    testStrategy?.categoriasAplicaveis.includes(
+      type as (typeof testStrategy.categoriasAplicaveis)[number]
+    )
+      ? "Categoria aplicável sem cenários válidos após as tentativas de geração. Revisão manual necessária."
+      : defaultLabel;
+
   const scenariosByType = state.generatedScenarios.reduce<Record<string, string[]>>(
     (acc, scenario) => {
       const block = [
@@ -81,20 +88,43 @@ export function renderFinalOutputMarkdown(state: ReportData): string {
     ),
     section(
       "Cenários de teste funcionais",
-      list(scenariosByType["funcional"] ?? [], "Nenhum cenário funcional gerado.")
+      list(
+        scenariosByType["funcional"] ?? [],
+        emptyScenarioLabel("funcional", "Nenhum cenário funcional gerado.")
+      )
     ),
     section(
       "Cenários de teste unitários",
-      list(scenariosByType["unitario"] ?? [], "Não aplicável a esta demanda.")
+      list(
+        scenariosByType["unitario"] ?? [],
+        emptyScenarioLabel("unitario", "Não aplicável a esta demanda.")
+      )
     ),
     section(
       "Cenários de integração",
-      list(scenariosByType["integracao"] ?? [], "Não aplicável a esta demanda.")
+      list(
+        scenariosByType["integracao"] ?? [],
+        emptyScenarioLabel("integracao", "Não aplicável a esta demanda.")
+      )
     ),
     section(
       "Cenários não funcionais",
-      list(scenariosByType["nao-funcional"] ?? [], "Não aplicável a esta demanda.")
+      list(
+        scenariosByType["nao-funcional"] ?? [],
+        emptyScenarioLabel("nao-funcional", "Não aplicável a esta demanda.")
+      )
     ),
+    ...(state.consistencyReview && !state.consistencyReview.consistente
+      ? [
+          section(
+            "Pendências de consistência",
+            list(
+              state.consistencyReview.problemas,
+              "A saída requer revisão manual antes da execução."
+            )
+          ),
+        ]
+      : []),
     section(
       "Checklist de validação",
       list(state.validationChecklist, "Nenhum item de checklist gerado.")

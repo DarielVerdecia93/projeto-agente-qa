@@ -163,8 +163,11 @@ Responsabilidade de cada nó:
   integração, não funcional) fazem sentido para este tipo de demanda, populando `testStrategy`.
 * **Gerar cenários de teste** — produz `generatedScenarios` e `validationChecklist` de acordo
   com a estratégia definida.
-* **Revisar consistência** — verifica se a saída é internamente coerente (ex.: cenário não
-  contradiz uma premissa registrada) antes de finalizar; pode retornar ao nó anterior.
+* **Revisar consistência** — aplica primeiro validações determinísticas de cobertura e estrutura
+  (ao menos um cenário por categoria aplicável e três passos por cenário) e, quando elas passam,
+  verifica com o LLM se a saída é semanticamente coerente (ex.: cenário não contradiz uma
+  premissa registrada). Uma reprovação pode retornar ao nó anterior; se as tentativas se
+  esgotarem, as pendências ficam explícitas no relatório final.
 * **Retornar saída final** — consolida tudo em `finalOutput`, no formato de serialização
   definido.
 
