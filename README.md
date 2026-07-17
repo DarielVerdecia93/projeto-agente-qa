@@ -1,154 +1,126 @@
 # Agente de QA (LangGraph JS)
 
-Agente de IA construído com **LangGraph JS**, Node.js e TypeScript para apoiar profissionais de
-QA na análise de demandas técnicas (histórias de usuário, bugs, deploys, alterações de API,
-mudanças em banco de dados, ajustes de configuração e texto livre), gerando cenários de teste,
-checklist de validação, riscos e recomendações.
+Agente de IA construído com **LangGraph JS**, Node.js e TypeScript que recebe uma demanda técnica
+de QA (história de usuário, bug, deploy, alteração de API, mudança em banco, texto livre etc.) e
+gera cenários de teste, checklist de validação, riscos e recomendações — em Markdown, com PDF
+opcional.
 
 - Visão geral e arquitetura: [`docs/arquitetura/visao-geral-agente.md`](docs/arquitetura/visao-geral-agente.md)
 - Rastreabilidade de prompts: [`docs/prompts/`](docs/prompts/README.md)
+- Exemplo real de entrada/saída: [`docs/exemplos/exemplo-entrada-saida.md`](docs/exemplos/exemplo-entrada-saida.md)
 - Como contribuir: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 ## Sumário
 
+- [Como funciona](#como-funciona)
 - [Pré-requisitos](#pré-requisitos)
-- [Fluxo completo (ponta a ponta)](#fluxo-completo-ponta-a-ponta)
-  1. [Instalar e configurar](#1-instalar-e-configurar)
-  2. [Executar o agente](#2-executar-o-agente)
-  3. [Entender a saída](#3-entender-a-saída)
-  4. [Gerar o relatório em PDF](#4-gerar-o-relatório-em-pdf)
+- [Como executar](#como-executar)
+- [Gerar o relatório em PDF](#gerar-o-relatório-em-pdf)
 - [Scripts disponíveis](#scripts-disponíveis)
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Documentação adicional](#documentação-adicional)
 
+## Como funciona
+
+```mermaid
+flowchart TD
+    start([Demanda de entrada]) --> receive[Receber entrada]
+    receive --> validate{Validar entrada}
+    validate -- insuficiente --> requestInfo[Solicitar complementação]
+    requestInfo --> stop1([Fim])
+    validate -- suficiente --> classify[Classificar demanda]
+    classify --> extract[Extrair informações]
+    extract --> ambiguities[Identificar ambiguidades]
+    ambiguities --> risks[Avaliar riscos]
+    risks --> strategy[Definir estratégia de testes]
+    strategy --> scenarios[Gerar cenários de teste]
+    scenarios --> review{Revisar consistência}
+    review -- inconsistente --> scenarios
+    review -- consistente --> output[Gerar saída final]
+    output --> stop2([Relatório .md / PDF])
+
+    classDef det fill:#334155,stroke:#1e293b,color:#fff;
+    classDef llm fill:#0f766e,stroke:#0d5c56,color:#fff;
+    classDef hybrid fill:#6d28d9,stroke:#4c1d95,color:#fff;
+    classDef tool fill:#b45309,stroke:#7c3a05,color:#fff;
+
+    class receive,validate,requestInfo det;
+    class classify,ambiguities,risks,strategy,scenarios llm;
+    class review hybrid;
+    class extract,output tool;
+```
+
+- 🔵 **cinza** — passo determinístico, sem chamar o LLM.
+- 🟢 **verde** — chamada estruturada ao LLM (Groq), validada com Zod.
+- 🟣 **roxo** — híbrido: regras determinísticas de cobertura primeiro, LLM para coerência semântica depois; reprovação volta para "Gerar cenários" (retry controlado).
+- 🟠 **laranja** — usa *tool calling*: em "Extrair informações" o próprio LLM escolhe qual tool de análise aplicar (`analisar_texto_livre`, `analisar_alteracao_api` ou `analisar_documento_markdown`, ver [`src/tools/analysis-tools.ts`](src/tools/analysis-tools.ts)); em "Gerar saída final" o nó aciona as tools de relatório (`gerar_relatorio_markdown` / `gerar_relatorio_pdf`, ver [`src/tools/output-tools.ts`](src/tools/output-tools.ts)).
+
+Cada nó lê/atualiza o `AgentState` compartilhado (ver [`src/state.ts`](src/state.ts) e o grafo em
+[`src/graph.ts`](src/graph.ts)) — é essa memória acumulada ao longo do fluxo (classificação,
+premissas, riscos, cenários) que alimenta a saída final. Detalhes de cada nó, decisões do agente
+e limitações da solução estão em [`docs/arquitetura/visao-geral-agente.md`](docs/arquitetura/visao-geral-agente.md).
+
 ## Pré-requisitos
 
-- **Node.js 18 ou superior** e **npm** (o projeto usa ESM nativo e sintaxe ES2022 — ver
-  [`tsconfig.json`](tsconfig.json)).
-- Uma **chave de API da [Groq](https://console.groq.com/keys)** (usada para as chamadas ao LLM
-  em `src/llm.ts`). A conta possui limites por minuto e por dia, aplicados por modelo e no nível
-  da organização. Se o modelo principal (`GROQ_MODEL`) falhar, o agente tenta imediatamente os
-  modelos listados em `GROQ_FALLBACK_MODELS`. Se todos falharem, a mensagem final identifica o erro de cada um e o
-  tempo de espera informado pela Groq. Esperas curtas (até 60 segundos por padrão), típicas de
-  limite por minuto, são respeitadas automaticamente e podem exigir mais de uma tentativa;
-  limites diários não bloqueiam a execução durante horas. Os padrões atuais são
-  `openai/gpt-oss-120b`, com `llama-3.1-8b-instant` e `qwen/qwen3.6-27b` como fallbacks
-  complementares. O primeiro fallback foi mantido temporariamente por apresentar boa
-  compatibilidade com este agente, mas tem desligamento anunciado para 16/08/2026 e deve ser
-  reavaliado antes dessa data. Consulte os
-  [limites da conta](https://console.groq.com/settings/limits) e a
-  [política de descontinuação de modelos](https://console.groq.com/docs/deprecations).
+- **Node.js 18+** e **npm** (ESM nativo, ver [`tsconfig.json`](tsconfig.json)).
+- Uma chave de API da **[Groq](https://console.groq.com/keys)**.
 
-## Fluxo completo (ponta a ponta)
+Variáveis de ambiente (copie `.env.example` para `.env`):
 
-### 1. Instalar e configurar
+| Variável | Para que serve |
+|---|---|
+| `GROQ_API_KEY` | Chave de API da Groq (obrigatória). |
+| `GROQ_MODEL` | Modelo principal (padrão: `openai/gpt-oss-120b`). |
+| `GROQ_FALLBACK_MODELS` | Lista de modelos alternativos, em ordem, usados se o principal falhar. |
+| `GROQ_MAX_RATE_LIMIT_WAIT_SECONDS` | Tempo máximo de espera automática em limites curtos (por minuto). |
+
+Se o modelo principal falhar, o agente tenta os fallbacks automaticamente; esperas curtas de
+limite por minuto são respeitadas e repetidas, limites diários seguem direto para o próximo
+modelo. O raciocínio completo por trás dessa escolha (por que esses modelos, o que foi
+descartado e por quê) está registrado em
+[`docs/arquitetura/decisoes-tecnicas.md`](docs/arquitetura/decisoes-tecnicas.md).
+
+## Como executar
 
 ```bash
 git clone <url-do-repositorio>
 cd projeto-agente_qa
 npm install
-cp .env.example .env
+cp .env.example .env   # preencha GROQ_API_KEY
 ```
 
-Abra o `.env` e preencha `GROQ_API_KEY` com sua chave da Groq. `GROQ_MODEL` define o principal e
-`GROQ_FALLBACK_MODELS` aceita uma lista de alternativas separadas por vírgula. Os padrões foram
-testados nas chamadas estruturadas e de tools do agente; ainda assim, modelos diferentes podem
-apresentar comportamentos distintos em tarefas específicas. `GROQ_MAX_RATE_LIMIT_WAIT_SECONDS` controla por quanto
-tempo o agente pode aguardar e repetir uma chamada limitada por minuto; valores maiores não são
-recomendados para limites diários.
-
-### 2. Executar o agente
-
-O agente aceita a demanda técnica de duas formas: como **texto direto** no argumento, ou como
-**caminho de um arquivo `.txt`/`.md`** contendo o texto.
-
 ```bash
-# Opção A: texto direto
+# texto direto
 npm run agent -- "Como usuário quero recuperar minha senha por e-mail"
 
-# Opção B: a partir de um arquivo
+# a partir de um arquivo (.txt ou .md)
 npm run agent -- examples-testes/demanda-login.txt
 
-# Opção C: qualquer uma das anteriores + geração do PDF ao final
+# qualquer uma das anteriores + geração do PDF ao final
 npm run agent -- examples-testes/demanda-login.txt --pdf
 ```
 
-Internamente (`src/index.ts`), o agente verifica se o argumento é um caminho de arquivo
-existente; se for, lê o conteúdo do arquivo. Caso contrário, trata o argumento como o próprio
-texto da demanda. A pasta [`examples-testes/`](examples-testes/) tem exemplos prontos para testar.
+Uma execução completa leva de alguns segundos a cerca de um minuto, dependendo da demanda e do
+modelo. Se a entrada não tiver informação suficiente, o agente não gera cenários — retorna um
+relatório curto pedindo mais detalhes (nó "Solicitar complementação" no diagrama acima).
 
-O processamento passa por um grafo de nós (classificação, extração de informação, identificação
-de ambiguidades, avaliação de riscos, definição de estratégia de testes, geração de cenários e
-revisão de consistência — ver [`docs/arquitetura/visao-geral-agente.md`](docs/arquitetura/visao-geral-agente.md)).
-A revisão aplica primeiro regras determinísticas de cobertura (ao menos um cenário para cada
-categoria escolhida na estratégia e três passos por cenário) e só então usa o LLM para avaliar a
-coerência semântica. Uma falha objetiva orienta uma nova geração; se as tentativas se esgotarem,
-o relatório explicita a pendência para revisão manual em vez de marcar a categoria como não
-aplicável.
-O fluxo realiza várias chamadas sequenciais ao LLM. Uma execução completa normalmente leva alguns segundos a
-pouco mais de um minuto, dependendo da complexidade da demanda e da velocidade do modelo.
-
-A arquitetura é **híbrida: nós + tools**. O fluxo entre as etapas é determinístico (garantido
-pelo grafo), mas na etapa de extração de informações o LLM escolhe, via *tool calling*, qual
-tool de análise especializada aplicar — `analisar_texto_livre`, `analisar_alteracao_api` ou
-`analisar_documento_markdown` (ver [`src/tools/analysis-tools.ts`](src/tools/analysis-tools.ts)).
-Se o modelo não chamar nenhuma tool válida, o agente usa um fallback determinístico com o prompt
-genérico de extração. A saída também é encapsulada em tools (`gerar_relatorio_markdown` e
-`gerar_relatorio_pdf`, em [`src/tools/output-tools.ts`](src/tools/output-tools.ts)), invocadas
-pelo nó final — o PDF só é gerado quando a flag `--pdf` é passada. O console informa qual tool
-de análise foi utilizada em cada execução.
-
-### 3. Entender a saída
-
-O resultado é exibido no console em Markdown **e também salvo automaticamente** em
-`docs/outputs/<slug-da-demanda>-<data-hora>.md`. O relatório final inclui, entre outras seções:
-classificação da demanda, resumo técnico, componentes afetados, premissas e informações
-faltantes, estratégia de testes, cenários de teste por categoria (funcional, unitário,
-integração, não funcional), checklist de validação, riscos técnicos/de negócio e recomendações
-para o QA.
-
-Se a demanda fornecida não tiver informação suficiente para uma análise útil, o agente não
-gera cenários — em vez disso, retorna um relatório curto explicando o motivo e recomendando que
-a demanda seja detalhada e reenviada.
-
-Um exemplo real de entrada e saída (execução completa sobre
-[`examples-testes/demanda-login.txt`](examples-testes/demanda-login.txt)) fica versionado em
+O resultado é exibido no console em Markdown e salvo automaticamente em
+`docs/outputs/<slug-da-demanda>-<data-hora>.md`, com classificação, resumo técnico, premissas,
+informações faltantes, cenários por categoria, checklist, riscos e recomendações. Veja um
+exemplo real completo em
 [`docs/exemplos/exemplo-entrada-saida.md`](docs/exemplos/exemplo-entrada-saida.md).
 
-### 4. Gerar o relatório em PDF
-
-Há duas formas de obter o PDF. A mais direta é rodar o agente com a flag `--pdf` (passo 2), que
-gera o relatório Markdown e o PDF na mesma execução. Alternativamente, com um arquivo Markdown
-em mãos (gerado pelo agente em `docs/outputs/` ou escrito manualmente no mesmo formato), gere um
-PDF técnico pronto para compartilhar:
+## Gerar o relatório em PDF
 
 ```bash
 npm run generate:pdf -- docs/outputs/<nome-do-arquivo-gerado-pelo-agente>.md
 ```
 
-O comando:
-
-1. Valida se o caminho do arquivo foi informado, existe e tem extensão `.md`.
-2. Converte o Markdown em HTML e aplica um template técnico de QA (capa, resumo do relatório,
-   conteúdo formatado e apêndice técnico com metadados de processamento).
-3. Renderiza o HTML em PDF com cabeçalho, rodapé e numeração de páginas.
-4. Salva o PDF em `docs/pdfs/`, com nome padronizado e sem sobrescrever arquivos anteriores
-   (ex.: `relatorio-qa-<nome-do-arquivo>-2026-07-07-1430.pdf`).
-5. Exibe no console o caminho final do arquivo gerado.
-
-**Exemplo de saída no console:**
-
-```text
-PDF gerado com sucesso: G:\...\docs\pdfs\relatorio-qa-demanda-login-2026-07-07-1430.pdf
-```
-
-**Bibliotecas usadas:** `puppeteer` (renderização do PDF a partir de HTML), `markdown-it`
-(conversão Markdown → HTML, com suporte nativo a tabelas), `dayjs` (formatação de datas). Ver
-detalhes de implementação em [`src/generate-pdf.ts`](src/generate-pdf.ts),
-[`src/services/`](src/services/) e [`src/templates/qa-report.template.ts`](src/templates/qa-report.template.ts).
-
-Nesse ponto o fluxo está completo: de uma demanda em texto livre a um PDF de relatório de QA
-pronto para anexar em um card, e-mail ou documentação de teste.
+Converte o Markdown em HTML (template técnico de QA com capa e apêndice), renderiza em PDF com
+cabeçalho/rodapé/numeração e salva em `docs/pdfs/` sem sobrescrever execuções anteriores.
+Bibliotecas: `puppeteer` (render), `markdown-it` (conversão), `dayjs` (datas) — ver
+[`src/generate-pdf.ts`](src/generate-pdf.ts), [`src/services/`](src/services/) e
+[`src/templates/qa-report.template.ts`](src/templates/qa-report.template.ts).
 
 ## Scripts disponíveis
 
@@ -179,7 +151,8 @@ src/
 docs/
   arquitetura/   visão geral do agente e decisões técnicas
   prompts/       registro versionado de todos os prompts (engenharia e operacionais)
-  outputs/       relatórios Markdown gerados (ignorados no git, exceto o próprio índice)
+  exemplos/      exemplo real de entrada e saída de uma execução
+  outputs/       relatórios Markdown gerados (ignorados no git)
   pdfs/          PDFs gerados (ignorados no git)
 examples-testes/ demandas de exemplo para testar o agente manualmente
 scripts/         scripts de suporte (validação de prompts, git hooks)
@@ -188,7 +161,7 @@ scripts/         scripts de suporte (validação de prompts, git hooks)
 ## Documentação adicional
 
 - [`docs/arquitetura/visao-geral-agente.md`](docs/arquitetura/visao-geral-agente.md) — problema,
-  objetivo, entradas aceitas, fluxo geral do agente e limitações da solução (seção 9).
+  objetivo, entradas aceitas, fluxo detalhado e limitações da solução (seção 9).
 - [`docs/arquitetura/decisoes-tecnicas.md`](docs/arquitetura/decisoes-tecnicas.md) — decisões de
   arquitetura e configuração derivadas dos prompts de engenharia.
 - [`docs/exemplos/exemplo-entrada-saida.md`](docs/exemplos/exemplo-entrada-saida.md) — exemplo
