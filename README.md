@@ -111,6 +111,10 @@ Se a demanda fornecida não tiver informação suficiente para uma análise úti
 gera cenários — em vez disso, retorna um relatório curto explicando o motivo e recomendando que
 a demanda seja detalhada e reenviada.
 
+Um exemplo real de entrada e saída (execução completa sobre
+[`examples-testes/demanda-login.txt`](examples-testes/demanda-login.txt)) fica versionado em
+[`docs/exemplos/exemplo-entrada-saida.md`](docs/exemplos/exemplo-entrada-saida.md).
+
 ### 4. Gerar o relatório em PDF
 
 Há duas formas de obter o PDF. A mais direta é rodar o agente com a flag `--pdf` (passo 2), que
@@ -184,9 +188,11 @@ scripts/         scripts de suporte (validação de prompts, git hooks)
 ## Documentação adicional
 
 - [`docs/arquitetura/visao-geral-agente.md`](docs/arquitetura/visao-geral-agente.md) — problema,
-  objetivo, entradas aceitas e fluxo geral do agente.
+  objetivo, entradas aceitas, fluxo geral do agente e limitações da solução (seção 9).
 - [`docs/arquitetura/decisoes-tecnicas.md`](docs/arquitetura/decisoes-tecnicas.md) — decisões de
   arquitetura e configuração derivadas dos prompts de engenharia.
+- [`docs/exemplos/exemplo-entrada-saida.md`](docs/exemplos/exemplo-entrada-saida.md) — exemplo
+  real de entrada e saída de uma execução completa do agente.
 - [`docs/prompts/README.md`](docs/prompts/README.md) — convenção de nomenclatura, versionamento
   e estrutura dos registros de prompt.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — fluxo de branches, convenção de commits e checklist
