@@ -80,6 +80,11 @@ modelo. O raciocínio completo por trás dessa escolha (por que esses modelos, o
 descartado e por quê) está registrado em
 [`docs/arquitetura/decisoes-tecnicas.md`](docs/arquitetura/decisoes-tecnicas.md).
 
+> **Nota:** o projeto usa o tier gratuito da Groq. Isso tem dois efeitos práticos: a qualidade
+> da saída pode variar mais do que em modelos pagos maiores, e uma execução pode demorar mais do
+> que o esperado quando o modelo principal esbarra em limite de taxa e o agente precisa esperar
+> ou passar para um fallback.
+
 ## Como executar
 
 ```bash

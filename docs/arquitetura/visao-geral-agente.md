@@ -297,6 +297,10 @@ Para manter expectativas realistas e delimitar claramente o escopo da primeira v
   repositórios de código, rastreadores de tarefas, bancos de dados reais ou pipelines de CI/CD).
 * O agente **não executa testes automaticamente** — ele gera cenários e checklists para
   execução humana (ou automação futura), não executa suítes de teste.
+* O projeto usa o **tier gratuito da Groq** (ver [`decisoes-tecnicas.md`](decisoes-tecnicas.md)),
+  o que traz duas limitações práticas: a **qualidade da saída** pode ser inferior à de modelos
+  pagos maiores, e o **tempo de execução** pode aumentar quando o modelo principal esbarra em
+  limite de taxa e o agente precisa esperar ou acionar um fallback.
 
 ## 10. Escopo da primeira versão (MVP)
 
