@@ -8,6 +8,7 @@ opcional.
 - Visão geral e arquitetura: [`docs/arquitetura/visao-geral-agente.md`](docs/arquitetura/visao-geral-agente.md)
 - Rastreabilidade de prompts: [`docs/prompts/`](docs/prompts/README.md)
 - Exemplo real de entrada/saída: [`docs/exemplos/exemplo-entrada-saida.md`](docs/exemplos/exemplo-entrada-saida.md)
+- Apresentação do projeto: [`docs/apresentacao/apresentacao-agente-qa.html`](docs/apresentacao/apresentacao-agente-qa.html)
 - Como contribuir: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 ## Sumário
@@ -171,6 +172,9 @@ scripts/         scripts de suporte (validação de prompts, git hooks)
   arquitetura e configuração derivadas dos prompts de engenharia.
 - [`docs/exemplos/exemplo-entrada-saida.md`](docs/exemplos/exemplo-entrada-saida.md) — exemplo
   real de entrada e saída de uma execução completa do agente.
+- [`docs/apresentacao/apresentacao-agente-qa.html`](docs/apresentacao/apresentacao-agente-qa.html)
+  — apresentação de 2 slides do projeto (problema, agente, entrada/saída e fluxo geral); abra o
+  arquivo no navegador para visualizar.
 - [`docs/prompts/README.md`](docs/prompts/README.md) — convenção de nomenclatura, versionamento
   e estrutura dos registros de prompt.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — fluxo de branches, convenção de commits e checklist
