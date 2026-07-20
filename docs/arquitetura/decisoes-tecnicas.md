@@ -26,6 +26,31 @@ O objetivo é separar duas camadas de rastreabilidade:
 
 ## Registro de decisões
 
+### [2026-07-16] Fallback explícito entre modelos Groq vigentes
+
+- Prompt relacionado: não aplicável (decisão de resiliência da infraestrutura do agente).
+- Decisão: usar `openai/gpt-oss-120b` como modelo principal e, como fallbacks complementares,
+  `llama-3.1-8b-instant` e `qwen/qwen3.6-27b`,
+  com tentativas controladas pela aplicação e diagnóstico agregado quando ambos falham. Os
+  retries internos do cliente ficam desativados para não repetir chamadas contra uma cota diária
+  já esgotada. Erros com espera curta informada pela Groq podem ser repetidos uma vez após o
+  intervalo indicado, inclusive com novas esperas curtas quando a janela ainda não tiver sido
+  totalmente liberada; esperas longas, típicas de TPD, seguem imediatamente para o fallback.
+- Alternativas consideradas: aguardar diariamente a renovação da cota do
+  `llama-3.3-70b-versatile`; manter `meta-llama/llama-4-scout-17b-16e-instruct` como fallback;
+  usar o `withFallbacks` padrão do LangChain.
+- Motivo da escolha: o limite diário do modelo principal era atingido após poucas execuções do
+  grafo e ambos os modelos Llama configurados entraram em processo de descontinuação. Além disso,
+  `withFallbacks` relança o primeiro erro quando todas as tentativas falham, ocultando o erro real
+  do modelo alternativo. A cadeia explícita preserva a causa de cada falha e facilita distinguir
+  limite diário, limite por minuto, modelo indisponível e erro de saída estruturada.
+  `openai/gpt-oss-20b` também foi avaliado, mas falhou na geração de JSON estruturado. Qwen e o
+  modelo Llama alternativo passaram nos testes básicos, porém cada um apresentou uma falha
+  estruturada pontual em etapas diferentes do grafo; por isso são usados em sequência, antes de
+  aguardar e repetir o principal. O Llama possui cota diária maior e atende à demonstração do
+  projeto, mas seu desligamento está anunciado para 16/08/2026; a escolha deve ser revista após a
+  entrega acadêmica.
+
 ### [2026-07-07] Adoção de um sistema formal de documentação de prompts
 
 - Prompt relacionado: [`docs/prompts/002-registro-prompts.md`](../prompts/002-registro-prompts.md)
